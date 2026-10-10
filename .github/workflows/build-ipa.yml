@@ -48,20 +48,20 @@ jobs:
           # temporary, correctly named Xcode source directory.
           - name: Prepare correctly named Swift sources
           shell: bash
-  run: |
-    set -euo pipefail
-    mkdir -p build/ios/Sources
-    # Copy files with correct names
-    cp ContentView.swift \
-      build/ios/Sources/ContentView.swift
-    cp GameWebView.swift \
-      build/ios/Sources/GameWebView.swift
-    cp TouchControlsView.swift \
-      build/ios/Sources/TouchControlsView.swift
-    cp PlayGTA5WrapperApp.swift \
-      build/ios/Sources/PlayGTA5WrapperApp.swift
-    cp Package.swift \
-      build/ios/Sources/Package.swift
+           run: |
+          set -euo pipefail
+          mkdir -p build/ios/Sources
+          # Copy files with correct names
+                cp ContentView.swift \
+              build/ios/Sources/ContentView.swift
+           cp GameWebView.swift \
+           build/ios/Sources/GameWebView.swift
+           cp TouchControlsView.swift \
+           build/ios/Sources/TouchControlsView.swift
+          cp PlayGTA5WrapperApp.swift \
+            build/ios/Sources/PlayGTA5WrapperApp.swift
+           cp Package.swift \
+            build/ios/Sources/Package.swift
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
