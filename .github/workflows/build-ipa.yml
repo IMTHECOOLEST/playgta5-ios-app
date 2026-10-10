@@ -1,0 +1,144 @@
+name: Build PlayGTA5 iOS IPA
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+permissions:
+  contents: read
+jobs:
+  build-ipa:
+    name: Xcode iOS Device Build
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Show Xcode version
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks
+      - name: Verify repository source files
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in \
+            ContentView.swift \
+            GameWebView.swift \
+            TouchControlsView.swift \
+            PlayGTA5WrapperApp.swift \
+            Package.swift
+          do
+            if [ ! -f "$file" ]; then
+              echo "::error::Missing required file: $file"
+              exit 1
+            fi
+          done
+      - name: Prepare correctly named Swift sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/ios/Sources
+          # The repository currently has Swift types stored
+          # under mismatched filenames. Copy them into a
+          # temporary, correctly named Xcode source directory.
+          cp ContentView.swift \
+            build/ios/Sources/GameDataManager.swift
+          cp GameWebView.swift \
+            build/ios/Sources/ContentView.swift
+          cp TouchControlsView.swift \
+            build/ios/Sources/GameWebView.swift
+          cp Package.swift \
+            build/ios/Sources/TouchControlsView.swift
+          cp PlayGTA5WrapperApp.swift \
+            build/ios/Sources/PlayGTA5WrapperApp.swift
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd build/ios
+          cat > project.yml <<'EOF'
+          name: PlayGTA5Wrapper
+          options:
+            deploymentTarget:
+              iOS: "17.0"
+          settings:
+            base:
+              SWIFT_VERSION: "5.0"
+              IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+              TARGETED_DEVICE_FAMILY: "2"
+              CODE_SIGNING_ALLOWED: "NO"
+          targets:
+            PlayGTA5Wrapper:
+              type: application
+              platform: iOS
+              sources:
+                - path: Sources
+              settings:
+                base:
+                  PRODUCT_NAME: PlayGTA5Wrapper
+                  PRODUCT_BUNDLE_IDENTIFIER: com.playgta5.wrapper
+                  GENERATE_INFOPLIST_FILE: YES
+                  INFOPLIST_KEY_CFBundleDisplayName: PlayGTA5
+                  INFOPLIST_KEY_UILaunchScreen_Generation: YES
+                  SUPPORTS_MACCATALYST: NO
+                  TARGETED_DEVICE_FAMILY: "2"
+                  ARCHS: arm64
+                  ONLY_ACTIVE_ARCH: NO
+          EOF
+          xcodegen generate \
+            --spec project.yml \
+            --project .
+          xcodebuild -list \
+            -project PlayGTA5Wrapper.xcodeproj
+      - name: Build app with Xcode
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project build/ios/PlayGTA5Wrapper.xcodeproj \
+            -scheme PlayGTA5Wrapper \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee build.log
+      - name: Package unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/PlayGTA5Wrapper.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::Xcode did not produce the expected app."
+            exit 1
+          fi
+          mkdir -p build/ipa/Payload
+          cp -R "$APP_PATH" build/ipa/Payload/
+          cd build/ipa
+          zip -qry ../../PlayGTA5Wrapper-unsigned.ipa Payload
+          cd ../..
+          test -s PlayGTA5Wrapper-unsigned.ipa
+          echo "Created PlayGTA5Wrapper-unsigned.ipa"
+      - name: Upload IPA artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PlayGTA5Wrapper-unsigned-IPA
+          path: PlayGTA5Wrapper-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PlayGTA5-Xcode-build-log
+          path: build.log
+          if-no-files-found: ignore
+          retention-days: 7
