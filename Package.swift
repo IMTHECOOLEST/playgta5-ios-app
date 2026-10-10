@@ -1,17 +1,11 @@
 import SwiftUI
 
-struct TouchControlsView: View {
-    @Binding var controlState: GameControlState
-
-    private let padRadius: CGFloat = 72
-    private let buttonSize: CGFloat = 62
-
     var body: some View {
         VStack {
             Spacer()
             HStack {
                 VStack(spacing: 16) {
-                    AnalogStickView(radius: padRadius, value: $controlState.moveX, secondValue: $controlState.moveY)
+                    AnalogStickView(moveX: $controlState.moveX, moveY: $controlState.moveY)
                     Spacer(minLength: 0)
                 }
 
@@ -49,11 +43,6 @@ struct TouchControlsView: View {
         .buttonStyle(.plain)
     }
 }
-
-struct AnalogStickView: View {
-    let radius: CGFloat
-    @Binding var value: Double
-    @Binding var secondValue: Double
 
     @State private var dragOffset: CGSize = .zero
 
