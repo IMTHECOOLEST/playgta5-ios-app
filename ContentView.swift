@@ -1,7 +1,13 @@
 import Foundation
 import SwiftUI
 
-final class GameDataManager: ObservableObject {
+struct ContentView: View {
+    @ObservedObject var gameDataManager: GameDataManager
+    @State private var controlState = GameControlState()
+    @State private var showFilePicker = false
+   @State private var isLoading = false
+
+    final class GameDataManager: ObservableObject {
     @Published var statusMessage: String = "Searching for game files..."
     @Published var detectedGameURL: URL?
     @Published var didFindGame: Bool = false
