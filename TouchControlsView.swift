@@ -7,14 +7,13 @@ struct TouchControlsView: View {
     @StateObject private var controllerManager = GameControllerManager()
 
     var body: some View {
-        ZStack(alignment: .bottomLeft) {
-            // Analog stick (left side)
+        ZStack(alignment: .bottomLeading) {
             VStack(alignment: .leading, spacing: 20) {
                 Text(isControllerConnected ? "🎮 Controller" : "📱 Touch")
                     .font(.caption2)
                     .foregroundStyle(.white)
                     .padding(.leading, 12)
-                
+
                 AnalogStickView(
                     moveX: $controlState.moveX,
                     moveY: $controlState.moveY
@@ -24,10 +23,8 @@ struct TouchControlsView: View {
                 .padding(.bottom, 20)
             }
 
-            // Action buttons (right side)
             HStack(spacing: 12) {
                 VStack(spacing: 12) {
-                    // Sprint button
                     Button(action: {}) {
                         Text("SPRINT")
                             .font(.caption2)
@@ -41,7 +38,6 @@ struct TouchControlsView: View {
                         controlState.sprint = pressing
                     }
 
-                    // Jump button
                     Button(action: {}) {
                         Text("JUMP")
                             .font(.caption2)
@@ -57,7 +53,6 @@ struct TouchControlsView: View {
                 }
 
                 VStack(spacing: 12) {
-                    // Action A button
                     Button(action: {}) {
                         Text("A")
                             .font(.headline)
@@ -71,7 +66,6 @@ struct TouchControlsView: View {
                         controlState.actionA = pressing
                     }
 
-                    // Action B button
                     Button(action: {}) {
                         Text("B")
                             .font(.headline)
@@ -103,13 +97,9 @@ class GameControllerManager: NSObject, ObservableObject {
     private var controlStateBinding: Binding<GameControlState>?
     private var displayLink: CADisplayLink?
 
-    override init() {
-        super.init()
-    }
-
     func setupControllers(controlState: Binding<GameControlState>) {
         self.controlStateBinding = controlState
-        
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(controllerDidConnect),
@@ -127,7 +117,6 @@ class GameControllerManager: NSObject, ObservableObject {
         if let controller = GCController.controllers().first {
             DispatchQueue.main.async {
                 self.isConnected = true
-                print("[GameController] Already connected: \(controller.vendorName ?? "Unknown")")
             }
             startPollingController(controller)
         }
@@ -137,7 +126,6 @@ class GameControllerManager: NSObject, ObservableObject {
         if let controller = notification.object as? GCController {
             DispatchQueue.main.async {
                 self.isConnected = true
-                print("[GameController] ✅ Connected: \(controller.vendorName ?? "Unknown")")
             }
             startPollingController(controller)
         }
@@ -146,14 +134,12 @@ class GameControllerManager: NSObject, ObservableObject {
     @objc func controllerDidDisconnect(_ notification: Notification) {
         DispatchQueue.main.async {
             self.isConnected = false
-            print("[GameController] ❌ Disconnected")
         }
         displayLink?.invalidate()
         displayLink = nil
     }
 
     private func startPollingController(_ controller: GCController) {
-        // Use CADisplayLink for smooth polling at screen refresh rate
         displayLink = CADisplayLink(
             target: self,
             selector: #selector(updateControllerState)
@@ -169,22 +155,16 @@ class GameControllerManager: NSObject, ObservableObject {
         var state = stateBinding.wrappedValue
 
         if let gamepad = controller.gamepad {
-            // D-Pad
             state.moveX = gamepad.dpad.right.isPressed ? 1.0 : (gamepad.dpad.left.isPressed ? -1.0 : 0.0)
             state.moveY = gamepad.dpad.up.isPressed ? 1.0 : (gamepad.dpad.down.isPressed ? -1.0 : 0.0)
-            
-            // Buttons
             state.actionA = gamepad.buttonA.isPressed
             state.actionB = gamepad.buttonB.isPressed
             state.sprint = gamepad.leftShoulder.isPressed
             state.jump = gamepad.rightShoulder.isPressed
         } else if let extendedGamepad = controller.extendedGamepad {
-            // Analog sticks
             let leftStick = extendedGamepad.leftThumbstick
             state.moveX = Double(leftStick.xAxis.value)
             state.moveY = Double(leftStick.yAxis.value)
-            
-            // Buttons
             state.actionA = extendedGamepad.buttonA.isPressed
             state.actionB = extendedGamepad.buttonB.isPressed
             state.sprint = extendedGamepad.leftShoulder.isPressed
@@ -202,11 +182,10 @@ class GameControllerManager: NSObject, ObservableObject {
     }
 }
 
-// Analog Stick View for Touch Input
 struct AnalogStickView: View {
     @Binding var moveX: Double
     @Binding var moveY: Double
-    
+
     @State private var dragOffset: CGSize = .zero
     let radius: CGFloat = 50
 
