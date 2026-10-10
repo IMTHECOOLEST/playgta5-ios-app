@@ -55,8 +55,6 @@ jobs:
             build/ios/Sources/TouchControlsView.swift
           cp PlayGTA5WrapperApp.swift \
             build/ios/Sources/PlayGTA5WrapperApp.swift
-          cp Package.swift \
-            build/ios/Sources/Package.swift
 
       - name: Install XcodeGen
         run: brew install xcodegen
