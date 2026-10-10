@@ -1,9 +1,12 @@
 import SwiftUI
 import WebKit
+import GameController
 
 struct ContentView: View {
     @ObservedObject var gameDataManager: GameDataManager
     @State private var controlState = GameControlState()
+    @State private var showFilePicker = false
+    @State private var isLoading = false
 
     var body: some View {
         ZStack {
@@ -16,13 +19,57 @@ struct ContentView: View {
                     Text("PlayGTA5")
                         .font(.title)
                         .fontWeight(.bold)
+                    
                     Text(gameDataManager.statusMessage)
                         .font(.body)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
-                    Text("Place the extracted game files in Documents/PlayGTA5/")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    
+                    // Show search paths in debug mode
+                    if !gameDataManager.searchPaths.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Searched locations:")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                            ForEach(gameDataManager.searchPaths.prefix(5), id: \.self) { path in
+                                Text(path)
+                                    .font(.caption2)
+                                    .foregroundStyle(.gray)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                    }
+                    
+                    HStack(spacing: 12) {
+                        Button(action: { gameDataManager.findGameFiles() }) {
+                            Label("Scan Again", systemImage: "arrow.clockwise")
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
+                        
+                        Button(action: { showFilePicker = true }) {
+                            Label("Browse", systemImage: "folder")
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(Color.green)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
+                        .fileImporter(
+                            isPresented: $showFilePicker,
+                            allowedContentTypes: [.folder],
+                            onCompletion: { result in
+                                if case .success(let url) = result {
+                                    gameDataManager.setGameURL(url)
+                                }
+                            }
+                        )
+                    }
+                    .padding(.horizontal)
                 }
                 .foregroundStyle(.white)
                 .padding()
