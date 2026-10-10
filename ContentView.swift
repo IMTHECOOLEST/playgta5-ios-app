@@ -73,12 +73,10 @@ final class GameDataManager: ObservableObject {
         }
 
         didFindGame = false
-                statusMessage = """
+        statusMessage = """
         ❌ No game files found in standard locations.
         Tap 'Browse' to manually select your PlayGTA5 folder.
-        """
-
-Or copy files to Documents/PlayGTA5/ and relaunch.
+        Or copy files to Documents/PlayGTA5/ and relaunch.
         """
         print("[GameDataManager] ❌ Game not found in any location")
     }
