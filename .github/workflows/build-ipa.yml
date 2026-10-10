@@ -14,14 +14,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
+
       - name: Show Xcode version
         run: |
           xcodebuild -version
           xcodebuild -showsdks
+
       - name: Verify repository source files
         shell: bash
         run: |
@@ -38,31 +41,26 @@ jobs:
               exit 1
             fi
           done
+
       - name: Prepare correctly named Swift sources
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p build/ios/Sources
-          # The repository currently has Swift types stored
-          # under mismatched filenames. Copy them into a
-          # temporary, correctly named Xcode source - name: Prepare correctly named Swift sources
-  shell: bash
-  run: |
-    set -euo pipefail
-    mkdir -p build/ios/Sources
-    # Copy files with correct names
-    cp ContentView.swift \
-      build/ios/Sources/ContentView.swift
-    cp GameWebView.swift \
-      build/ios/Sources/GameWebView.swift
-    cp TouchControlsView.swift \
-      build/ios/Sources/TouchControlsView.swift
-    cp PlayGTA5WrapperApp.swift \
-      build/ios/Sources/PlayGTA5WrapperApp.swift
-    cp Package.swift \
-      build/ios/Sources/Package.swift
+          cp ContentView.swift \
+            build/ios/Sources/ContentView.swift
+          cp GameWebView.swift \
+            build/ios/Sources/GameWebView.swift
+          cp TouchControlsView.swift \
+            build/ios/Sources/TouchControlsView.swift
+          cp PlayGTA5WrapperApp.swift \
+            build/ios/Sources/PlayGTA5WrapperApp.swift
+          cp Package.swift \
+            build/ios/Sources/Package.swift
+
       - name: Install XcodeGen
         run: brew install xcodegen
+
       - name: Generate Xcode project
         shell: bash
         run: |
@@ -102,6 +100,7 @@ jobs:
             --project .
           xcodebuild -list \
             -project PlayGTA5Wrapper.xcodeproj
+
       - name: Build app with Xcode
         shell: bash
         run: |
@@ -115,6 +114,7 @@ jobs:
             -derivedDataPath build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             build 2>&1 | tee build.log
+
       - name: Package unsigned IPA
         shell: bash
         run: |
@@ -131,6 +131,7 @@ jobs:
           cd ../..
           test -s PlayGTA5Wrapper-unsigned.ipa
           echo "Created PlayGTA5Wrapper-unsigned.ipa"
+
       - name: Upload IPA artifact
         if: success()
         uses: actions/upload-artifact@v4
@@ -139,6 +140,7 @@ jobs:
           path: PlayGTA5Wrapper-unsigned.ipa
           if-no-files-found: error
           retention-days: 7
+
       - name: Upload build log on failure
         if: failure()
         uses: actions/upload-artifact@v4
