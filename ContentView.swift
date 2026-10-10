@@ -72,7 +72,6 @@ struct ContentView: View {
         Tap 'Browse' to manually select your PlayGTA5 folder.
         Or copy files to Documents/PlayGTA5/ and relaunch.
         """
-    }
 
     private func checkCandidate(_ candidate: URL) -> Bool {
         let homepageURL = candidate.appendingPathComponent("homepage.html")
