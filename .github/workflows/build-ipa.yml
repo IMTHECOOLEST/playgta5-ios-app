@@ -55,7 +55,7 @@ jobs:
             build/ios/Sources/TouchControlsView.swift
           cp PlayGTA5WrapperApp.swift \
             build/ios/Sources/PlayGTA5WrapperApp.swift
-          cp GameDataManager.swift
+          cp GameDataManager.swift \
             build/ios/Sources/GameDataManager.swift
 
       - name: Install XcodeGen
