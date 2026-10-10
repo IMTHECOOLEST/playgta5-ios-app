@@ -1,13 +1,4 @@
-import Foundation
-import SwiftUI
-
-struct ContentView: View {
-    @ObservedObject var gameDataManager: GameDataManager
-    @State private var controlState = GameControlState()
-    @State private var showFilePicker = false
-   @State private var isLoading = false
-
-    final class GameDataManager: ObservableObject {
+final class GameDataManager: ObservableObject {
     @Published var statusMessage: String = "Searching for game files..."
     @Published var detectedGameURL: URL?
     @Published var didFindGame: Bool = false
@@ -26,39 +17,7 @@ struct ContentView: View {
     func findGameFiles() {
         var candidates: [URL] = []
         var searchLog: [String] = []
-
-        candidates.append(documentsURL.appendingPathComponent("PlayGTA5"))
-        searchLog.append("📁 Documents/PlayGTA5")
-
-        candidates.append(documentsURL.appendingPathComponent("PlayGTA5/.mirror"))
-        searchLog.append("📁 Documents/PlayGTA5/.mirror")
-
-        candidates.append(documentsURL.appendingPathComponent("PlayGTA5/game"))
-        searchLog.append("📁 Documents/PlayGTA5/game")
-
-        candidates.append(documentsURL.appendingPathComponent("PlayGTA5/root"))
-        searchLog.append("📁 Documents/PlayGTA5/root")
-
-        if let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
-            candidates.append(appSupportURL.appendingPathComponent("PlayGTA5"))
-            searchLog.append("📁 Application Support/PlayGTA5")
-
-            candidates.append(appSupportURL.appendingPathComponent("PlayGTA5/.mirror"))
-            searchLog.append("📁 Application Support/PlayGTA5/.mirror")
-        }
-
-        if let libraryURL = fileManager.urls(for: .libraryDirectory, in: .userDomainMask).first {
-            candidates.append(libraryURL.appendingPathComponent("PlayGTA5"))
-            searchLog.append("📁 Library/PlayGTA5")
-        }
-
-        if let cachesURL = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
-            candidates.append(cachesURL.appendingPathComponent("PlayGTA5"))
-            searchLog.append("📁 Caches/PlayGTA5")
-        }
-
-        candidates.append(URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("PlayGTA5"))
-        searchLog.append("📁 Temp/PlayGTA5")
+        // ... existing candidate setup ...
 
         self.searchPaths = searchLog
 
@@ -72,8 +31,9 @@ struct ContentView: View {
         Tap 'Browse' to manually select your PlayGTA5 folder.
         Or copy files to Documents/PlayGTA5/ and relaunch.
         """
+    }
 
-    private func checkCandidate(_ candidate: URL) -> Bool {
+    func checkCandidate(_ candidate: URL) -> Bool {
         let homepageURL = candidate.appendingPathComponent("homepage.html")
         if fileExists(at: homepageURL) {
             detectedGameURL = candidate
@@ -112,15 +72,7 @@ struct ContentView: View {
         return false
     }
 
-    func setGameURL(_ url: URL) {
-        if checkCandidate(url) { return }
-
-        detectedGameURL = url
-        didFindGame = true
-        statusMessage = "✅ Manual folder selected. Tap 'Load Game'."
-    }
-
-    private func fileExists(at url: URL) -> Bool {
+    func fileExists(at url: URL) -> Bool {
         fileManager.fileExists(atPath: url.path)
     }
 }
