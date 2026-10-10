@@ -1,3 +1,5 @@
+// swift-tools-version: 6.3
+import PackageDescription
 import SwiftUI
 
 struct TouchControlsView: View {
