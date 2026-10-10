@@ -1,81 +1,247 @@
 import SwiftUI
-import WebKit
+import GameController
+import CoreHaptics
 
-struct GameWebView: UIViewRepresentable {
-    let gameRootURL: URL
+struct TouchControlsView: View {
     @Binding var controlState: GameControlState
+    @State private var isControllerConnected = false
+    @StateObject private var controllerManager = GameControllerManager()
 
-    func makeUIView(context: Context) -> WKWebView {
-        let config = WKWebViewConfiguration()
-        config.allowsInlineMediaPlayback = true
-        config.mediaTypesRequiringUserActionForPlayback = []
+    var body: some View {
+        ZStack(alignment: .bottomLeft) {
+            // Analog stick (left side)
+            VStack(alignment: .leading, spacing: 20) {
+                Text(isControllerConnected ? "🎮 Controller" : "📱 Touch")
+                    .font(.caption2)
+                    .foregroundStyle(.white)
+                    .padding(.leading, 12)
+                
+                AnalogStickView(
+                    moveX: $controlState.moveX,
+                    moveY: $controlState.moveY
+                )
+                .frame(width: 120, height: 120)
+                .padding(.leading, 12)
+                .padding(.bottom, 20)
+            }
 
-        let webView = WKWebView(frame: .zero, configuration: config)
-        webView.navigationDelegate = context.coordinator
-        webView.uiDelegate = context.coordinator
-        webView.backgroundColor = .black
-        webView.isOpaque = false
-        webView.scrollView.isScrollEnabled = false
-        webView.allowsBackForwardNavigationGestures = false
-        webView.allowsLinkPreview = false
+            // Action buttons (right side)
+            HStack(spacing: 12) {
+                VStack(spacing: 12) {
+                    // Sprint button (top)
+                    Button(action: {}) {
+                        Text("SPRINT")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .frame(width: 60, height: 40)
+                            .background(controlState.sprint ? Color.orange : Color.gray)
+                            .foregroundColor(.black)
+                            .cornerRadius(4)
+                    }
+                    .onLongPressGesture(minimumDuration: 0.01, perform: {}) { pressing in
+                        controlState.sprint = pressing
+                    }
 
-        DispatchQueue.main.async {
-            loadGame(in: webView)
+                    // Jump button (bottom)
+                    Button(action: {}) {
+                        Text("JUMP")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .frame(width: 60, height: 40)
+                            .background(controlState.jump ? Color.orange : Color.gray)
+                            .foregroundColor(.black)
+                            .cornerRadius(4)
+                    }
+                    .onLongPressGesture(minimumDuration: 0.01, perform: {}) { pressing in
+                        controlState.jump = pressing
+                    }
+                }
+
+                VStack(spacing: 12) {
+                    // Action A button (top)
+                    Button(action: {}) {
+                        Text("A")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .frame(width: 50, height: 50)
+                            .background(controlState.actionA ? Color.orange : Color.gray)
+                            .foregroundColor(.black)
+                            .cornerRadius(25)
+                    }
+                    .onLongPressGesture(minimumDuration: 0.01, perform: {}) { pressing in
+                        controlState.actionA = pressing
+                    }
+
+                    // Action B button (bottom)
+                    Button(action: {}) {
+                        Text("B")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .frame(width: 50, height: 50)
+                            .background(controlState.actionB ? Color.orange : Color.gray)
+                            .foregroundColor(.black)
+                            .cornerRadius(25)
+                    }
+                    .onLongPressGesture(minimumDuration: 0.01, perform: {}) { pressing in
+                        controlState.actionB = pressing
+                    }
+                }
+            }
+            .padding(.trailing, 12)
+            .padding(.bottom, 20)
         }
-
-        return webView
-    }
-
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        let moveX = controlState.moveX
-        let moveY = controlState.moveY
-        let actionA = controlState.actionA ? "true" : "false"
-        let actionB = controlState.actionB ? "true" : "false"
-        let sprint = controlState.sprint ? "true" : "false"
-        let jump = controlState.jump ? "true" : "false"
-
-        let script = "window.__internalGameControls = { moveX: \(moveX), moveY: \(moveY), actionA: \(actionA), actionB: \(actionB), sprint: \(sprint), jump: \(jump) };"
-        webView.evaluateJavaScript(script, completionHandler: nil)
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-
-    private func loadGame(in webView: WKWebView) {
-        let candidateFiles = [
-            gameRootURL.appendingPathComponent("homepage.html"),
-            gameRootURL.appendingPathComponent("index.html"),
-            gameRootURL.appendingPathComponent(".mirror").appendingPathComponent("homepage.html"),
-            gameRootURL.appendingPathComponent(".mirror").appendingPathComponent("index.html")
-        ]
-
-        for candidate in candidateFiles {
-            if FileManager.default.fileExists(atPath: candidate.path) {
-                let request = URLRequest(url: candidate)
-                webView.load(request)
-                return
+        .onAppear {
+            controllerManager.setupControllers()
+        }
+        .onReceive(controllerManager.$currentController) { controller in
+            isControllerConnected = controller != nil
+            if let controller = controller {
+                updateStateFromController(controller, &controlState)
             }
         }
-
-        let fallbackHTML = """
-        <html><body style="background:#000;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-        <div style="text-align:center;">
-        <h2>PlayGTA5</h2>
-        <p>No game entry file was found in the selected game folder.</p>
-        <p>Place the extracted game files inside Documents/PlayGTA5/ and relaunch.</p>
-        </div>
-        </body></html>
-        """
-
-        webView.loadHTMLString(fallbackHTML, baseURL: gameRootURL)
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
-        let parent: GameWebView
+    private func updateStateFromController(_ controller: GCController, _ state: inout GameControlState) {
+        if let gamepad = controller.gamepad {
+            // D-Pad for movement
+            if gamepad.dpad.right.isPressed {
+                state.moveX = 1.0
+            } else if gamepad.dpad.left.isPressed {
+                state.moveX = -1.0
+            } else {
+                state.moveX = 0.0
+            }
 
-        init(_ parent: GameWebView) {
-            self.parent = parent
+            if gamepad.dpad.up.isPressed {
+                state.moveY = 1.0
+            } else if gamepad.dpad.down.isPressed {
+                state.moveY = -1.0
+            } else {
+                state.moveY = 0.0
+            }
+
+            // Buttons
+            state.actionA = gamepad.buttonA.isPressed
+            state.actionB = gamepad.buttonB.isPressed
+            state.sprint = gamepad.leftShoulder.isPressed
+            state.jump = gamepad.rightShoulder.isPressed
+        } else if let extendedGamepad = controller.extendedGamepad {
+            // Extended gamepad with analog sticks
+            let leftStick = extendedGamepad.leftThumbstick
+            state.moveX = Double(leftStick.xAxis.value)
+            state.moveY = Double(leftStick.yAxis.value)
+
+            state.actionA = extendedGamepad.buttonA.isPressed
+            state.actionB = extendedGamepad.buttonB.isPressed
+            state.sprint = extendedGamepad.leftShoulder.isPressed
+            state.jump = extendedGamepad.rightShoulder.isPressed
         }
+    }
+}
+
+class GameControllerManager: NSObject, ObservableObject {
+    @Published var currentController: GCController?
+
+    override init() {
+        super.init()
+    }
+
+    func setupControllers() {
+        // Listen for controller connections
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(controllerDidConnect),
+            name: NSNotification.Name.GCControllerDidConnect,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(controllerDidDisconnect),
+            name: NSNotification.Name.GCControllerDidDisconnect,
+            object: nil
+        )
+
+        // Check if a controller is already connected
+        if let controller = GCController.controllers().first {
+            self.currentController = controller
+            print("[Controller] Controller already connected: \(controller.vendorName ?? "Unknown")")
+        }
+    }
+
+    @objc func controllerDidConnect(_ notification: Notification) {
+        if let controller = notification.object as? GCController {
+            DispatchQueue.main.async {
+                self.currentController = controller
+                print("[Controller] ✅ Controller connected: \(controller.vendorName ?? "Unknown")")
+            }
+        }
+    }
+
+    @objc func controllerDidDisconnect(_ notification: Notification) {
+        DispatchQueue.main.async {
+            self.currentController = nil
+            print("[Controller] ❌ Controller disconnected")
+        }
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+}
+
+// Analog Stick View for Touch Input
+struct AnalogStickView: View {
+    @Binding var moveX: Double
+    @Binding var moveY: Double
+    
+    @State private var isDragging = false
+    @State private var dragOffset: CGSize = .zero
+    
+    let radius: CGFloat = 50
+
+    var body: some View {
+        ZStack {
+            // Outer circle (background)
+            Circle()
+                .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                .frame(width: 120, height: 120)
+
+            // Inner circle (indicator)
+            Circle()
+                .fill(Color.orange.opacity(0.7))
+                .frame(width: 35, height: 35)
+                .offset(dragOffset)
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            isDragging = true
+                            let offset = value.translation
+                            let distance = sqrt(offset.width * offset.width + offset.height * offset.height)
+
+                            if distance <= radius {
+                                dragOffset = offset
+                            } else {
+                                let angle = atan2(offset.height, offset.width)
+                                dragOffset = CGSize(
+                                    width: cos(angle) * radius,
+                                    height: sin(angle) * radius
+                                )
+                            }
+
+                            moveX = Double(dragOffset.width / radius)
+                            moveY = -Double(dragOffset.height / radius)
+                        }
+                        .onEnded { _ in
+                            isDragging = false
+                            dragOffset = .zero
+                            moveX = 0
+                            moveY = 0
+                        }
+                )
+        }
+        .frame(width: 120, height: 120)
+        .background(Color.black.opacity(0.5))
+        .cornerRadius(60)
     }
 }
