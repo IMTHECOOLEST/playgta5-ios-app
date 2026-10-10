@@ -2,12 +2,6 @@ import SwiftUI
 import WebKit
 import GameController
 
-struct ContentView: View {
-    @ObservedObject var gameDataManager: GameDataManager
-    @State private var controlState = GameControlState()
-    @State private var showFilePicker = false
-    @State private var isLoading = false
-
     var body: some View {
         ZStack {
             if gameDataManager.didFindGame, let gameURL = gameDataManager.detectedGameURL {
